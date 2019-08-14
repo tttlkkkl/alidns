@@ -1,24 +1,25 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
 	certmanager_v1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
+	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	jsoniter "github.com/json-iterator/go"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-func init() {
-
-}
 
 // AlibabaDNSSolver interface realization
 type AlibabaDNSSolver struct {
@@ -32,7 +33,7 @@ type AlibabaDNSSolverConfig struct {
 	AliCloudAccessKeyID        string                                 `json:"accessKeyId"`
 	AliCloudAccessKeySecret    string                                 `json:"accessKeySecret"`
 	AliCloudAccessKeySecretRef certmanager_v1alpha1.SecretKeySelector `json:"accessKeySecretRef"`
-	DNSTtl                     *int                                   `json:"ttl"`
+	DNSTtl                     int                                    `json:"ttl"`
 }
 
 // NewAlibabaDNSSolver new the Solver
@@ -56,18 +57,62 @@ func (a *AlibabaDNSSolver) Name() string {
 
 // Present handel the dns request
 func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("set dns ...", ch)
-	_, err := getAliDNSClient(ch)
+	fmt.Println("set dns ...", StructToString(ch))
+	request := alidns.CreateAddDomainRecordRequest()
+	request.DomainName = ch.ResolvedZone
+	request.Type = "TXT"
+	request.RR = getRR(ch.ResolvedFQDN)
+	request.Value = ch.Key
+	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
 	}
+	request.TTL = requests.NewInteger(cfg.DNSTtl)
+	client, err := a.getAliDNSClient(ch, cfg)
+	if err != nil {
+		return err
+	}
+	response, err := client.AddDomainRecord(request)
+
+	if err != nil {
+		log.Printf("Response:%v\n error: %v\n", response, err)
+		return err
+	}
+	log.Printf("Response: %v\n", response)
 	return nil
+}
+
+// StructToString formt struct data
+func StructToString(s interface{}) string {
+	b, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Sprintf("%+v", s)
+	}
+	return string(b)
 }
 
 // CleanUp clean the dns setting
 func (a *AlibabaDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("set dns ...", ch)
-	// TODO: add code that deletes a record from the DNS provider's console
+	fmt.Println("========================UNset dns ...", StructToString(ch))
+	log.Printf("set the dns record,FQDN:%s,zone:%s\n", ch.ResolvedFQDN, ch.ResolvedZone)
+	cfg, err := loadConfig(ch.Config)
+	if err != nil {
+		return err
+	}
+	client, err := a.getAliDNSClient(ch, cfg)
+	if err != nil {
+		return err
+	}
+	request := alidns.CreateDeleteSubDomainRecordsRequest()
+	request.DomainName = ch.ResolvedZone
+	request.RR = getRR(ch.ResolvedFQDN)
+	request.Type = "TXT"
+	response, err := client.DeleteSubDomainRecords(request)
+	log.Printf("domain list :%v", response)
+	if err != nil {
+		log.Printf("delete fail :%v", err)
+		return err
+	}
 	return nil
 }
 
@@ -80,31 +125,44 @@ func (a *AlibabaDNSSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-ch
 	a.K8sClient = cl
 	return nil
 }
-func loadConfig(cfgJSON *extapi.JSON) (AlibabaDNSSolverConfig, error) {
+func loadConfig(cfgJSON *extapi.JSON) (*AlibabaDNSSolverConfig, error) {
 	cfg := AlibabaDNSSolverConfig{}
 	// handle the 'base case' where no configuration has been provided
 	if cfgJSON == nil {
-		return cfg, nil
+		return &cfg, nil
 	}
 	if err := json.Unmarshal(cfgJSON.Raw, &cfg); err != nil {
-		return cfg, fmt.Errorf("error decoding solver config: %v", err)
+		return &cfg, fmt.Errorf("error decoding solver config: %v", err)
 	}
 
-	return cfg, nil
+	return &cfg, nil
 }
 
-func getAliDNSClient(ch *v1alpha1.ChallengeRequest) (*alidns.Client, error) {
-	cfg, err := loadConfig(ch.Config)
-	if err != nil {
-		return nil, err
-	}
-	var accessKeyID, accessKeySecret string
-	accessKeyID = cfg.AliCloudAccessKeyID
+func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *AlibabaDNSSolverConfig) (*alidns.Client, error) {
+	var err error
+	var accessKeySecret string
 	accessKeySecret = cfg.AliCloudAccessKeySecret
-	log.Println(accessKeyID, accessKeySecret)
+	if accessKeySecret == "" {
+		if cfg.AliCloudAccessKeySecretRef.Key == "" {
+			return nil, errors.New("the accessKeySecretRef not found")
+		}
+		if cfg.AliCloudAccessKeySecretRef.Name == "" {
+			return nil, errors.New("the accessKeySecretRef not found")
+		}
+		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeySecretRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeySecretRef.Key]
+		if !ok {
+			return nil, errors.New("the accessKeySecretRef not found ")
+		}
+		accessKeySecret = fmt.Sprintf("%s", accessKeySecretRef)
+	}
 	client, err := alidns.NewClientWithAccessKey(
 		cfg.AliCloudRegionID,
-		accessKeyID,
+		cfg.AliCloudAccessKeyID,
 		accessKeySecret,
 	)
 
@@ -113,4 +171,12 @@ func getAliDNSClient(ch *v1alpha1.ChallengeRequest) (*alidns.Client, error) {
 	}
 	client.OpenLogger()
 	return client, nil
+}
+
+func getRR(fqdn string) string {
+	idx := strings.LastIndex(fqdn, ".")
+	if idx == -1 {
+		return util.UnFqdn(fqdn)
+	}
+	return fqdn[:idx]
 }

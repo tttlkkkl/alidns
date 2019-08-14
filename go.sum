@@ -230,6 +230,8 @@ github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANyt
 github.com/jefferai/jsonx v1.0.0/go.mod h1:OGmqmi2tTeI/PS+qQfBDToLHHJIy/RMp24fPo8vFvoQ=
 github.com/jetstack/cert-manager v0.9.0 h1:c7hGxgAyppMUsFVNz1YOJa6qJMD4PQHhWLiXNxFyCj4=
 github.com/jetstack/cert-manager v0.9.0/go.mod h1:Fs0ujd+7nobZrgYgE5leTEjdv6WANzkR6b3ens1pFZA=
+github.com/jetstack/cert-manager v0.9.1 h1:UrkzaFmsczbu5wNBRMluF2FRzud/yd5DRmZ4vEUgdHo=
+github.com/jetstack/cert-manager v0.9.1/go.mod h1:Fs0ujd+7nobZrgYgE5leTEjdv6WANzkR6b3ens1pFZA=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jonboulle/clockwork v0.0.0-20141017032234-72f9bd7c4e0c/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=

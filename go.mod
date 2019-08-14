@@ -5,9 +5,10 @@ go 1.12
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190813065001-bd59ef2e00ef
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/jetstack/cert-manager v0.9.0
+	github.com/jetstack/cert-manager v0.9.1
 	github.com/json-iterator/go v1.1.7
 	k8s.io/apiextensions-apiserver v0.0.0-20190810101755-ebc439d6a67b
+	k8s.io/apimachinery v0.0.0-20190809020650-423f5d784010
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 )
 
