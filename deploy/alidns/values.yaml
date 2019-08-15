@@ -6,19 +6,19 @@
 # solve the DNS01 challenge.
 # This group name should be **unique**, hence using your own company's domain
 # here is recommended.
-groupName: acme.mycompany.com
+groupName: acme.lihuaio.com
 
 certManager:
   namespace: cert-manager
   serviceAccountName: cert-manager
 
 image:
-  repository: mycompany/webhook-image
+  repository: tttlkkkl/cert-manage-alidns
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
-nameOverride: ""
-fullnameOverride: ""
+nameOverride: "alidns"
+fullnameOverride: "alidns"
 
 service:
   type: ClusterIP

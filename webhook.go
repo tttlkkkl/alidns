@@ -33,6 +33,7 @@ type AlibabaDNSSolverConfig struct {
 	AliCloudAccessKeyID        string                                 `json:"accessKeyId"`
 	AliCloudAccessKeySecret    string                                 `json:"accessKeySecret"`
 	AliCloudAccessKeySecretRef certmanager_v1alpha1.SecretKeySelector `json:"accessKeySecretRef"`
+	AliCloudAccessKeyIDRef     certmanager_v1alpha1.SecretKeySelector `json:"accessKeyIdRef"`
 	DNSTtl                     int                                    `json:"ttl"`
 }
 
@@ -140,14 +141,15 @@ func loadConfig(cfgJSON *extapi.JSON) (*AlibabaDNSSolverConfig, error) {
 
 func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *AlibabaDNSSolverConfig) (*alidns.Client, error) {
 	var err error
-	var accessKeySecret string
+	var accessKeyID, accessKeySecret string
 	accessKeySecret = cfg.AliCloudAccessKeySecret
+	accessKeyID = cfg.AliCloudAccessKeyID
 	if accessKeySecret == "" {
 		if cfg.AliCloudAccessKeySecretRef.Key == "" {
-			return nil, errors.New("the accessKeySecretRef not found")
+			return nil, errors.New("the accessKeySecretRef key not found")
 		}
 		if cfg.AliCloudAccessKeySecretRef.Name == "" {
-			return nil, errors.New("the accessKeySecretRef not found")
+			return nil, errors.New("the accessKeySecretRef name not found")
 		}
 		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeySecretRef.Name, metav1.GetOptions{})
 		if err != nil {
@@ -156,7 +158,25 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 
 		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeySecretRef.Key]
 		if !ok {
-			return nil, errors.New("the accessKeySecretRef not found ")
+			return nil, errors.New("the accessKeySecret not found ")
+		}
+		accessKeySecret = fmt.Sprintf("%s", accessKeySecretRef)
+	}
+	if accessKeyID == "" {
+		if cfg.AliCloudAccessKeyIDRef.Key == "" {
+			return nil, errors.New("the accessKeyIdRef key not found")
+		}
+		if cfg.AliCloudAccessKeyIDRef.Name == "" {
+			return nil, errors.New("the accessKeyIdRef name not found")
+		}
+		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeyIDRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeyIDRef.Key]
+		if !ok {
+			return nil, errors.New("the accessKeySecret not found ")
 		}
 		accessKeySecret = fmt.Sprintf("%s", accessKeySecretRef)
 	}

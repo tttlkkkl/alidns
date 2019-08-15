@@ -4,7 +4,7 @@ RUN apk add --no-cache git
 
 WORKDIR /workspace
 ENV GO111MODULE=on
-
+ENV GOPROXY=https://goproxy.io
 COPY go.mod .
 COPY go.sum .
 
@@ -14,7 +14,7 @@ FROM build_deps AS build
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o webhook -ldflags '-w -extldflags "-static"' .
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o webhook -ldflags '-s -w -extldflags "-static"' .
 
 FROM alpine:3.10
 ENV ALICLOUD_ACCESS_KEY=
@@ -24,3 +24,4 @@ RUN apk add --no-cache ca-certificates
 
 COPY --from=build /workspace/webhook /usr/local/bin/webhook
 
+ENTRYPOINT [ "webhook" ]
