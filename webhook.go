@@ -10,7 +10,6 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/apis/acme/v1alpha1"
-	certmanager_v1alpha1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha1"
 	"github.com/jetstack/cert-manager/pkg/issuer/acme/dns/util"
 	jsoniter "github.com/json-iterator/go"
 	extapi "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -29,12 +28,18 @@ type AlibabaDNSSolver struct {
 // AlibabaDNSSolverConfig alibaba DNS config
 // see https://github.com/aliyun/alibaba-cloud-sdk-go
 type AlibabaDNSSolverConfig struct {
-	AliCloudRegionID           string                                 `json:"regionId"`
-	AliCloudAccessKeyID        string                                 `json:"accessKeyId"`
-	AliCloudAccessKeySecret    string                                 `json:"accessKeySecret"`
-	AliCloudAccessKeySecretRef certmanager_v1alpha1.SecretKeySelector `json:"accessKeySecretRef"`
-	AliCloudAccessKeyIDRef     certmanager_v1alpha1.SecretKeySelector `json:"accessKeyIdRef"`
-	DNSTtl                     int                                    `json:"ttl"`
+	AliCloudRegionID        string                `json:"regionId"`
+	AliCloudAccessKeyID     string                `json:"accessKeyId"`
+	AliCloudAccessKeySecret string                `json:"accessKeySecret"`
+	AliCloudAccessKeyRef    AliDNSApiSecretConfig `json:"accessKeyRef"`
+	DNSTtl                  int                   `json:"ttl"`
+}
+
+// AliDNSApiSecretConfig get api secret from k8s
+type AliDNSApiSecretConfig struct {
+	SecretName      string `json:"name"`
+	AccessIDKey     string `json:"accessKeyIdKey"`
+	AccessSecretKey string `json:"accessKeySecretKey"`
 }
 
 // NewAlibabaDNSSolver new the Solver
@@ -60,10 +65,11 @@ func (a *AlibabaDNSSolver) Name() string {
 func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	fmt.Println("set dns ...", StructToString(ch))
 	request := alidns.CreateAddDomainRecordRequest()
-	request.DomainName = ch.ResolvedZone
+	request.DomainName = util.UnFqdn(ch.ResolvedZone)
 	request.Type = "TXT"
 	request.RR = getRR(ch.ResolvedFQDN)
 	request.Value = ch.Key
+	log.Printf("CleanUp DomainName:%s,RR:%s,Value:%s\n", request.DomainName, request.RR, request.Value)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -95,7 +101,6 @@ func StructToString(s interface{}) string {
 // CleanUp clean the dns setting
 func (a *AlibabaDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	fmt.Println("========================UNset dns ...", StructToString(ch))
-	log.Printf("set the dns record,FQDN:%s,zone:%s\n", ch.ResolvedFQDN, ch.ResolvedZone)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -105,9 +110,10 @@ func (a *AlibabaDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 		return err
 	}
 	request := alidns.CreateDeleteSubDomainRecordsRequest()
-	request.DomainName = ch.ResolvedZone
+	request.DomainName = util.UnFqdn(ch.ResolvedZone)
 	request.RR = getRR(ch.ResolvedFQDN)
 	request.Type = "TXT"
+	log.Printf("CleanUp DomainName:%s,RR:%s\n", request.DomainName, request.RR)
 	response, err := client.DeleteSubDomainRecords(request)
 	log.Printf("domain list :%v", response)
 	if err != nil {
@@ -144,57 +150,54 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 	var accessKeyID, accessKeySecret string
 	accessKeySecret = cfg.AliCloudAccessKeySecret
 	accessKeyID = cfg.AliCloudAccessKeyID
-	if accessKeySecret == "" {
-		if cfg.AliCloudAccessKeySecretRef.Key == "" {
-			return nil, errors.New("the accessKeySecretRef key not found")
+	fmt.Println("ccccccccccccccccccccccccc", cfg)
+	if accessKeySecret == "" && accessKeyID == "" {
+		if cfg.AliCloudAccessKeyRef.SecretName == "" {
+			return nil, errors.New("the SecretName name not found")
 		}
-		if cfg.AliCloudAccessKeySecretRef.Name == "" {
-			return nil, errors.New("the accessKeySecretRef name not found")
+		if cfg.AliCloudAccessKeyRef.AccessIDKey == "" {
+			return nil, errors.New("the AccessIDKey key not found")
 		}
-		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeySecretRef.Name, metav1.GetOptions{})
+		if cfg.AliCloudAccessKeyRef.AccessSecretKey == "" {
+			return nil, errors.New("the AccessSecretKey key not found")
+		}
+		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeyRef.SecretName, metav1.GetOptions{})
+		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", secret)
 		if err != nil {
 			return nil, err
 		}
 
-		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeySecretRef.Key]
+		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeyRef.AccessSecretKey]
 		if !ok {
-			return nil, errors.New("the accessKeySecret not found ")
+			return nil, errors.New("the accessKeySecret not found")
 		}
-		accessKeySecret = fmt.Sprintf("%s", accessKeySecretRef)
+		accessKeySecret = string(accessKeySecretRef)
+		accessKeyIDRef, ok := secret.Data[cfg.AliCloudAccessKeyRef.AccessIDKey]
+		if !ok {
+			return nil, errors.New("the accessKeyId not found")
+		}
+		accessKeyID = string(accessKeyIDRef)
 	}
-	if accessKeyID == "" {
-		if cfg.AliCloudAccessKeyIDRef.Key == "" {
-			return nil, errors.New("the accessKeyIdRef key not found")
-		}
-		if cfg.AliCloudAccessKeyIDRef.Name == "" {
-			return nil, errors.New("the accessKeyIdRef name not found")
-		}
-		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeyIDRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		accessKeySecretRef, ok := secret.Data[cfg.AliCloudAccessKeyIDRef.Key]
-		if !ok {
-			return nil, errors.New("the accessKeySecret not found ")
-		}
-		accessKeySecret = fmt.Sprintf("%s", accessKeySecretRef)
+	fmt.Printf("accessKeySecret:%s============accessKeyID:%s\n", accessKeySecret, accessKeyID)
+	if accessKeyID == "" || accessKeySecret == "" {
+		return nil, errors.New("accessKeyID or accessKeySecret cannot empty")
 	}
 	client, err := alidns.NewClientWithAccessKey(
 		cfg.AliCloudRegionID,
-		cfg.AliCloudAccessKeyID,
+		accessKeyID,
 		accessKeySecret,
 	)
 
 	if err != nil {
 		return nil, err
 	}
-	client.OpenLogger()
+	// client.OpenLogger()
 	return client, nil
 }
 
 func getRR(fqdn string) string {
-	idx := strings.LastIndex(fqdn, ".")
+	idx := strings.Index(fqdn, ".")
+	fmt.Println("---------------------------------", util.UnFqdn(fqdn))
 	if idx == -1 {
 		return util.UnFqdn(fqdn)
 	}

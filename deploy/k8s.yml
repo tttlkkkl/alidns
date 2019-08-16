@@ -26,7 +26,7 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: alidns
-    namespace: default
+    namespace: cert-manager
 ---
 # ClusterIssuer
 apiVersion: certmanager.k8s.io/v1alpha1
@@ -46,11 +46,9 @@ spec:
       dns01:
         webhook:
           config:
-            accessKeySecretRef:
-              key: accessKeySecret
-              name: alibaba-api-dns-secret
-            accessKeyIdRef:
-              key: accessKeyId
+            accessKeyRef:
+              accessKeySecretKey: accessKeySecret
+              accessKeyIdKey: accessKeyId
               name: alibaba-api-dns-secret
             regionId: "cn-shenzhen"
             ttl: 600
@@ -76,8 +74,8 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: example-ingress
-  namespace: default
+  name: lihuasheng-ingress
+  namespace: cert-manager
   annotations:
     certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
 spec:

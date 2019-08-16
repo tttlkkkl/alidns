@@ -16,7 +16,7 @@ func TestRun(t *testing.T) {
 	fixture := dns.NewFixture(s,
 		dns.SetResolvedZone(zone),
 		dns.SetAllowAmbientCredentials(false),
-		dns.SetResolvedFQDN("kihu."),
+		dns.SetResolvedFQDN("_acme-challenge.lihuaio.com."),
 		dns.SetUseAuthoritative(true),
 		dns.SetManifestPath("testdata/alidns"),
 		dns.SetBinariesPath("./_out/kubebuilder/bin"),
