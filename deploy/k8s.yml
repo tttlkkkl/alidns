@@ -42,7 +42,7 @@ spec:
     solvers:
     - selector: 
         dnsNames:
-        - '*.lihuasheng.cn'
+        - '*.lihuaio.com'
       dns01:
         webhook:
           config:
@@ -53,19 +53,19 @@ spec:
             regionId: "cn-shenzhen"
             ttl: 600
           groupName: acme.lihuaio.com
-          solverName: alidns
 
 ---
 #Certificate
 apiVersion: certmanager.k8s.io/v1alpha1
 kind: Certificate
 metadata:
-  name: lihuasheng.cn-certificate
+  name: lihuaio.com
+  namespace: default
 spec:
-  secretName: lihuasheng.cn-tls
-  renewBefore: 240h
+  secretName: lihuaio.com
+  commonName: '*.lihuaio.com'
   dnsNames:
-  - '*.lihuasheng.cn'
+  - "*.lihuaio.com"
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
@@ -74,20 +74,50 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: lihuasheng-ingress
-  namespace: cert-manager
   annotations:
+    kubernetes.io/ingress.class: traefik 
     certmanager.k8s.io/cluster-issuer: "letsencrypt-prod"
+  name: nginx-ingress
 spec:
-  tls:
-  - hosts:
-    - '*.lihuasheng.cn'
-    secretName: lihuasheng.cn-tls
   rules:
-  - host: li.lihuasheng.cn
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: backend-service
-          servicePort: 80
+    - host: "xx.lihuaio.com"
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: li
+              servicePort: 80
+  tls:
+    - hosts:
+        - '*.lihuaio.com'
+      secretName: lihuaio.com
+---
+# nginx -- hello word
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-hello-word
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: nginx-hello-word
+    spec:
+      containers:
+      - name: nginx-hello-word
+        image: nginx:1.17.3-alpine
+---
+# nginx hello word service
+kind: Service
+apiVersion: v1
+metadata:
+  name:  nginx-hello-word
+spec:
+  selector:
+    app:  svc-nginx-hello-word
+  type:  ClusterIP
+  ports:
+  - name:  http
+    port:  80
+    targetPort:  80

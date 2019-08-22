@@ -63,7 +63,6 @@ func (a *AlibabaDNSSolver) Name() string {
 
 // Present handel the dns request
 func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("set dns ...", StructToString(ch))
 	request := alidns.CreateAddDomainRecordRequest()
 	request.DomainName = util.UnFqdn(ch.ResolvedZone)
 	request.Type = "TXT"
@@ -89,18 +88,8 @@ func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	return nil
 }
 
-// StructToString formt struct data
-func StructToString(s interface{}) string {
-	b, err := json.Marshal(s)
-	if err != nil {
-		return fmt.Sprintf("%+v", s)
-	}
-	return string(b)
-}
-
 // CleanUp clean the dns setting
 func (a *AlibabaDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
-	fmt.Println("========================UNset dns ...", StructToString(ch))
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -150,7 +139,6 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 	var accessKeyID, accessKeySecret string
 	accessKeySecret = cfg.AliCloudAccessKeySecret
 	accessKeyID = cfg.AliCloudAccessKeyID
-	fmt.Println("ccccccccccccccccccccccccc", cfg)
 	if accessKeySecret == "" && accessKeyID == "" {
 		if cfg.AliCloudAccessKeyRef.SecretName == "" {
 			return nil, errors.New("the SecretName name not found")
@@ -162,7 +150,6 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 			return nil, errors.New("the AccessSecretKey key not found")
 		}
 		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeyRef.SecretName, metav1.GetOptions{})
-		fmt.Println("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", secret)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +165,6 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 		}
 		accessKeyID = string(accessKeyIDRef)
 	}
-	fmt.Printf("accessKeySecret:%s============accessKeyID:%s\n", accessKeySecret, accessKeyID)
 	if accessKeyID == "" || accessKeySecret == "" {
 		return nil, errors.New("accessKeyID or accessKeySecret cannot empty")
 	}
@@ -197,7 +183,6 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 
 func getRR(fqdn string) string {
 	idx := strings.Index(fqdn, ".")
-	fmt.Println("---------------------------------", util.UnFqdn(fqdn))
 	if idx == -1 {
 		return util.UnFqdn(fqdn)
 	}
