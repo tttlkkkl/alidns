@@ -51,6 +51,8 @@ spec:
               accessKeyIdKey: accessKeyId
               name: alibaba-api-dns-secret
             regionId: "cn-shenzhen"
+            accessKeySecret:
+            accessKeyId:
             ttl: 600
           groupName: acme.lihuaio.com
 

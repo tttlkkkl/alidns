@@ -12,6 +12,18 @@
 ## 编排使用：
 ### 以为域名 lihuaio.com 签发通配符域名为例，开始之前你需要替换为自己的域名:
 ### 在 deploy 目录中的 k8s.yaml 是一个完整的例子，用 traefik 作为入口网关，显示 nginx 的欢迎页，可以作为参考。
+- 创建阿里云 api 密钥:
+你也可以与 `regionId` 同级别的直接设置 `accessKeyId`和`accessKeySecret`字段，但是不推荐这样做。
+```yml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alibaba-api-dns-secret
+data:
+  accessKeyId: <your aliyun accessKeyId>
+  accessKeySecret: <your aliyun accessKeySecret>
+type: Opaque
+```
 - 创建RBAC:
 ```yaml
 #RBAC
@@ -69,6 +81,8 @@ spec:
               accessKeyIdKey: accessKeyId
               name: alibaba-api-dns-secret
             regionId: "cn-shenzhen"
+            accessKeySecret:
+            accessKeyId:
             ttl: 600
           groupName: acme.lihuaio.com
 ```
