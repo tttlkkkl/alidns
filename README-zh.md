@@ -9,7 +9,8 @@
 - `git clone git@github.com:tttlkkkl/alidns.git`
 - `cd deploy`
 - `helm install --name alidns --namespace cert-manager alidns/`
-## 编排使用，以为域名 lihuaio.com 签发通配符域名为例，开始之前你需要替换为自己的域名:
+## 编排使用：
+### 以为域名 lihuaio.com 签发通配符域名为例，开始之前你需要替换为自己的域名:
 ### 在 deploy 目录中的 k8s.yaml 是一个完整的例子，用 traefik 作为入口网关，显示 nginx 的欢迎页，可以作为参考。
 - 创建RBAC:
 ```yaml
