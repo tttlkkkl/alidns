@@ -66,9 +66,9 @@ func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	request := alidns.CreateAddDomainRecordRequest()
 	request.DomainName = util.UnFqdn(ch.ResolvedZone)
 	request.Type = "TXT"
-	request.RR = getRR(ch.ResolvedFQDN)
+	request.RR = GetRR(ch.ResolvedFQDN, ch.ResolvedZone)
 	request.Value = ch.Key
-	log.Printf("CleanUp DomainName:%s,RR:%s,Value:%s\n", request.DomainName, request.RR, request.Value)
+	log.Printf("Present DomainName:%s,RR:%s,Value:%s\n", request.DomainName, request.RR, request.Value)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (a *AlibabaDNSSolver) CleanUp(ch *v1alpha1.ChallengeRequest) error {
 	}
 	request := alidns.CreateDeleteSubDomainRecordsRequest()
 	request.DomainName = util.UnFqdn(ch.ResolvedZone)
-	request.RR = getRR(ch.ResolvedFQDN)
+	request.RR = GetRR(ch.ResolvedFQDN, ch.ResolvedZone)
 	request.Type = "TXT"
 	log.Printf("CleanUp DomainName:%s,RR:%s\n", request.DomainName, request.RR)
 	response, err := client.DeleteSubDomainRecords(request)
@@ -181,10 +181,15 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 	return client, nil
 }
 
-func getRR(fqdn string) string {
-	idx := strings.Index(fqdn, ".")
-	if idx == -1 {
-		return util.UnFqdn(fqdn)
+// GetRR get RR values
+func GetRR(fqdn, domain string) string {
+	log.Println("FQDN:", fqdn, "domain:", domain)
+	domain = util.UnFqdn(domain)
+	rr := util.UnFqdn(fqdn)
+	idx := strings.LastIndex(rr, domain)
+	if idx != -1 {
+		rr = util.UnFqdn(fqdn[:idx])
 	}
-	return fqdn[:idx]
+	log.Println("return rr:", rr)
+	return rr
 }

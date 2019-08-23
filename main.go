@@ -6,9 +6,11 @@ import (
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 )
 
-var GroupName = os.Getenv("GROUP_NAME")
+var GroupName string
 
 func main() {
+	GroupName = os.Getenv("GROUP_NAME")
+
 	if GroupName == "" {
 		panic("GROUP_NAME must be specified")
 	}
