@@ -1,6 +1,6 @@
 module github.com/tttlkkkl/alidns
 
-go 1.12
+go 1.13
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190813065001-bd59ef2e00ef

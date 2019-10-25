@@ -6,6 +6,7 @@ import (
 	"github.com/jetstack/cert-manager/pkg/acme/webhook/cmd"
 )
 
+// GroupName api 名称
 var GroupName string
 
 func main() {
