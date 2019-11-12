@@ -35,10 +35,14 @@ spec:
               containerPort: 443
               protocol: TCP
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
               port: https
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              scheme: HTTPS
+              path: /healthz
               port: https
           volumeMounts:
             - name: certs

@@ -2,7 +2,7 @@
 [简体中文](README-zh.md)
 
 the alidns provider solver for k8s cert-manager.
-cert-manager version >= 0.8
+cert-manager version >= 0.11
 
 
 ## install

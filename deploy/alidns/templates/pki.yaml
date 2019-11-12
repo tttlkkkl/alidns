@@ -32,6 +32,7 @@ spec:
   duration: 43800h # 5y
   issuerRef:
     name: {{ include "alidns-webhook.selfSignedIssuer" . }}
+    kind: Issuer
   commonName: "ca.alidns-webhook.cert-manager"
   isCA: true
 
@@ -70,6 +71,7 @@ spec:
   duration: 8760h # 1y
   issuerRef:
     name: {{ include "alidns-webhook.rootCAIssuer" . }}
+    kind: Issuer
   dnsNames:
   - {{ include "alidns-webhook.fullname" . }}
   - {{ include "alidns-webhook.fullname" . }}.{{ .Release.Namespace }}

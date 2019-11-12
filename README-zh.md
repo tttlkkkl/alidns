@@ -3,7 +3,7 @@
 
 ## 使用前提：
 - 你已经安装好 cert-manager 并且开启了 webhook 支持 [install cert-manager](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html)。
-- cert-manager 版本必须在0.8以上，本插件在0.9版本下测试通过。
+- cert-manager 版本必须在0.8以上，本插件在0.9版本下测试通过,0.11下已确定无法使用。
 - 你的域名通过阿里云DNS做解析，并已获得api权限。
 ## 安装
 - `git clone git@github.com:tttlkkkl/alidns.git`
@@ -23,38 +23,6 @@ data:
   accessKeyId: <your aliyun accessKeyId>
   accessKeySecret: <your aliyun accessKeySecret>
 type: Opaque
-```
-- 创建RBAC:
-```yaml
-#RBAC
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
-metadata:
-  name: alidns:secret-reader
-rules:
-  - apiGroups:
-      - ''
-    resources:
-      - 'secrets'
-    resourceNames:
-      - 'alibaba-api-dns-secret'
-    verbs:
-      - 'get'
-      - 'watch'
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: alidns:secret-reader
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: alidns:secret-reader
-subjects:
-  - apiGroup: ""
-    kind: ServiceAccount
-    name: alidns
-    namespace: cert-manager
 ```
 - 创建 ClusterIssuer
 ```yaml
