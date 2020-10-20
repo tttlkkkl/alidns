@@ -14,7 +14,7 @@ certManager:
 
 image:
   repository: tttlkkkl/cert-manage-alidns
-  tag: latest
+  tag: v1
   pullPolicy: Always
 
 nameOverride: "alidns"

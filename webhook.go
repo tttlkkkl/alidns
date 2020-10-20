@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -71,11 +72,13 @@ func (a *AlibabaDNSSolver) Present(ch *v1alpha1.ChallengeRequest) error {
 	log.Printf("Present DomainName:%s,RR:%s,Value:%s\n", request.DomainName, request.RR, request.Value)
 	cfg, err := loadConfig(ch.Config)
 	if err != nil {
+		log.Printf("load config, error: %v\n", err)
 		return err
 	}
 	request.TTL = requests.NewInteger(cfg.DNSTtl)
 	client, err := a.getAliDNSClient(ch, cfg)
 	if err != nil {
+		log.Printf("get dns client error: %v\n", err)
 		return err
 	}
 	response, err := client.AddDomainRecord(request)
@@ -149,7 +152,7 @@ func (a *AlibabaDNSSolver) getAliDNSClient(ch *v1alpha1.ChallengeRequest, cfg *A
 		if cfg.AliCloudAccessKeyRef.AccessSecretKey == "" {
 			return nil, errors.New("the AccessSecretKey key not found")
 		}
-		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(cfg.AliCloudAccessKeyRef.SecretName, metav1.GetOptions{})
+		secret, err := a.K8sClient.CoreV1().Secrets(ch.ResourceNamespace).Get(context.Background(), cfg.AliCloudAccessKeyRef.SecretName, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

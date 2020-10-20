@@ -1,4 +1,4 @@
-FROM golang:1.12.4-alpine AS build_deps
+FROM golang:1.14.10-alpine AS build_deps
 
 RUN apk add --no-cache git
 
@@ -16,7 +16,7 @@ COPY . .
 
 RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o webhook -ldflags '-s -w -extldflags "-static"' .
 
-FROM alpine:3.10
+FROM alpine:3.12
 ENV ALICLOUD_ACCESS_KEY=
 ENV ALICLOUD_SECRET_KEY=
 ENV REGIONID=

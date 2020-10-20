@@ -3,7 +3,7 @@
 
 ## 使用前提：
 - 你已经安装好 cert-manager 并且开启了 webhook 支持 [install cert-manager](https://docs.cert-manager.io/en/latest/getting-started/install/kubernetes.html)。
-- cert-manager 版本必须在0.8以上，本插件在0.9版本下测试通过,0.11下已确定无法使用。
+- cert-manager 低版本可能存在不兼容问题，v1.0.3下测试通过。
 - 你的域名通过阿里云DNS做解析，并已获得api权限。
 ## 安装
 - `git clone git@github.com:tttlkkkl/alidns.git`
@@ -54,7 +54,7 @@ spec:
             ttl: 600
           groupName: acme.lihuaio.com
 ```
-- 创建 Certificate 证书对象
+- 创建 Certificate 证书对象,此步骤会创建名为 lihuaio.com 的证书对象。
 ```yaml
 apiVersion: certmanager.k8s.io/v1alpha1
 kind: Certificate
